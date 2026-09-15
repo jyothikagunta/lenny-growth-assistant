@@ -1,0 +1,44 @@
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+backend/.env
+lenny-transcripts-source/
+
+# Python environments and generated files
+.venv/
+venv/
+*/.venv/
+*/venv/
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+*/.pytest_cache/
+.mypy_cache/
+*.egg-info/
+
+# Frontend dependencies and build output
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Logs, coverage, and local runtime output
+*.log
+.coverage
+coverage.xml
+htmlcov/
+.cache/
+tmp/
+temp/
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Operating-system files
+.DS_Store
+Thumbs.db
