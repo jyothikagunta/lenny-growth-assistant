@@ -142,7 +142,11 @@ class FailureHandlingTest(unittest.TestCase):
 
     def test_empty_context_prompt_requires_insufficient_support_statement(self):
         prompt = agent.build_user_prompt("", "question", "No relevant transcript material was found.")
-        self.assertIn("does not support a confident answer", prompt)
+        self.assertIn(
+            "only when the retrieved context",
+            prompt,
+        )
+        self.assertIn("contains no relevant evidence", prompt)
 
     @staticmethod
     def _chat_db():

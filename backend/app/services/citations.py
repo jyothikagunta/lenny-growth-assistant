@@ -29,6 +29,17 @@ def map_source_references(
     ]
 
 
+def resolve_source_references(
+    generated_text: str,
+    retrieved_results: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Use valid model citations, or expose retrieved sources in order."""
+    sources = map_source_references(generated_text, retrieved_results)
+    if sources or not retrieved_results:
+        return sources
+    return [source_metadata(result) for result in retrieved_results]
+
+
 def source_metadata(result: dict[str, Any]) -> dict[str, Any]:
     """Copy only metadata owned by the transcript database result."""
     return {

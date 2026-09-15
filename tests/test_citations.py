@@ -10,7 +10,7 @@ os.environ.setdefault(
 
 from app.services.agent import AgentResponse
 from app.services.artifacts import ArtifactRequest, build_artifact_result
-from app.services.citations import map_source_references
+from app.services.citations import map_source_references, resolve_source_references
 from app.services.chat import chat_with_transcripts
 
 
@@ -91,6 +91,41 @@ Sources:
 
         self.assertEqual(sources, [])
 
+    def test_no_model_citation_exposes_retrieved_sources_in_order(self):
+        sources = resolve_source_references("Sources: None", RETRIEVED)
+
+        self.assertEqual(
+            sources,
+            [
+                {
+                    "episode_title": "Activation and retention",
+                    "guest_name": "Elena Verna",
+                    "source_url": "https://example.com/elena",
+                },
+                {
+                    "episode_title": "Growth loops",
+                    "guest_name": "Casey Winters",
+                    "source_url": "https://example.com/casey",
+                },
+            ],
+        )
+
+    def test_invalid_model_citation_does_not_create_a_source(self):
+        sources = resolve_source_references(
+            "Sources: SOURCE 0, SOURCE 3, SOURCE 99.", RETRIEVED[:1]
+        )
+
+        self.assertEqual(sources, [
+            {
+                "episode_title": "Activation and retention",
+                "guest_name": "Elena Verna",
+                "source_url": "https://example.com/elena",
+            }
+        ])
+
+    def test_no_retrieval_evidence_keeps_sources_empty(self):
+        self.assertEqual(resolve_source_references("Sources: None", []), [])
+
     def test_chat_response_sources_are_mapped_from_retrieval(self):
         session_query = MagicMock()
         session_query.filter.return_value.first.return_value = object()
@@ -117,7 +152,7 @@ Sources:
         self.assertEqual(response["sources"][0]["guest_name"], "Casey Winters")
         self.assertNotIn("Kevin Yien", str(response["sources"]))
 
-    def test_missing_valid_citation_is_acknowledged_without_inventing_sources(self):
+    def test_missing_valid_citation_falls_back_to_retrieved_sources(self):
         session_query = MagicMock()
         session_query.filter.return_value.first.return_value = object()
         messages_query = MagicMock()
@@ -139,8 +174,18 @@ Sources:
                 limit=5,
             )
 
-        self.assertEqual(response["sources"], [])
-        self.assertIn("transcript source citation", response["answer"])
+        self.assertEqual(response["sources"], [
+            {
+                "episode_title": "Activation and retention",
+                "guest_name": "Elena Verna",
+                "source_url": "https://example.com/elena",
+            },
+            {
+                "episode_title": "Growth loops",
+                "guest_name": "Casey Winters",
+                "source_url": "https://example.com/casey",
+            },
+        ])
 
     def test_artifact_sources_use_the_same_authoritative_mapping(self):
         artifact = build_artifact_result(

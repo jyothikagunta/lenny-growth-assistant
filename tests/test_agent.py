@@ -10,11 +10,29 @@ os.environ.setdefault(
 )
 
 from app.services import agent
-from app.services.agent import AgentResponse, AgentConfigurationError
+from app.services.agent import (
+    AgentResponse,
+    AgentConfigurationError,
+    build_user_prompt,
+)
 from app.services.chat import chat_with_transcripts
 
 
 class AgentFacadeTest(unittest.TestCase):
+    def test_grounded_prompt_answers_partial_relevant_evidence(self):
+        prompt = build_user_prompt(
+            history="No previous conversation history.",
+            query="What principles are discussed?",
+            context="SOURCE 1\nTranscript excerpt: Relevant evidence.",
+        )
+
+        self.assertIn("any relevant evidence", prompt)
+        self.assertIn("even if it is partial", prompt)
+        self.assertIn("Do not use the insufficient-information", prompt)
+        self.assertIn("only when the retrieved context", prompt)
+        self.assertIn("exact SOURCE number corresponding to the evidence", prompt)
+        self.assertIn('write "Sources: None" when relevant evidence exists', prompt)
+
     def test_local_backend_uses_existing_llm_path(self):
         result = {
             "episode_title": "Episode",

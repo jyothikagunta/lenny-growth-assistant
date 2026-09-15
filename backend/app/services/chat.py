@@ -14,7 +14,7 @@ from app.services.llm import LLMConfigurationError, LLMServiceError
 from app.services.retrieval import RetrievalServiceError
 from app.services.citations import (
     ensure_grounding_acknowledgement,
-    map_source_references,
+    resolve_source_references,
 )
 from app.models.message import Message
 from app.models.session import Session as SessionModel
@@ -124,7 +124,7 @@ def chat_with_transcripts(
 
     answer = agent_response.answer
     results = agent_response.results
-    sources = map_source_references(answer, results)
+    sources = resolve_source_references(answer, results)
     if results:
         answer = ensure_grounding_acknowledgement(answer, sources)
 

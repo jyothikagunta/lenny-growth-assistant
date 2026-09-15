@@ -39,19 +39,20 @@ GROUNDING RULES:
 3. Do not use general model knowledge to fill gaps.
 4. You may synthesize information across multiple relevant excerpts.
 5. Ignore transcript excerpts that are not relevant to the user's question.
-6. If the excerpts provide a partial answer, give the supported partial
-   answer and clearly state what is not supported.
-7. If there is genuinely no useful information, say:
+6. If any excerpt contains relevant evidence, answer using the supported
+    points even if the evidence is partial. Clearly state what is not
+    supported.
+7. Use the insufficient-information statement only when the excerpts contain
+    no relevant evidence for the question. In that case, say:
    "The available Lenny transcript material does not provide enough
    information to answer this confidently."
 8. At the end, include a Sources section.
 9. List only sources that directly support the answer.
-10. Reference sources using their SOURCE number, for example SOURCE 1.
+10. When using evidence, include at least one valid SOURCE N from the
+     provided context, using the exact SOURCE number for that evidence. Never
+     write "Sources: None" when relevant evidence exists.
 11. Conversation history is context for follow-up questions only. It is not
     evidence for factual claims about Lenny's Podcast.
-12. If you use any transcript evidence, cite at least one valid SOURCE N in
-    the Sources section. Never write "Sources: None" when the excerpts
-    support the answer.
 """
 
 CLAUDE_AUTH_ENV_VARS = ("ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN")
@@ -124,15 +125,17 @@ User question:
 Answer the question using ONLY the transcript context.
 
 Requirements:
-- Give a useful answer when the context supports one.
+- If the context contains any relevant evidence, answer with the supported
+    points even if it is partial. Do not use the insufficient-information
+    refusal when relevant evidence exists.
 - Ignore irrelevant sources.
 - Do not invent information.
-- If no relevant transcript material was retrieved, clearly say that the
-    available Lenny transcript material does not support a confident answer.
-- If the context only partially answers the question, clearly state what
-  is supported and what is not.
-- If you use any retrieved transcript evidence, cite it with one or more
-    valid SOURCE N references. Do not write "Sources: None" in that case.
+- Use the insufficient-information refusal only when the retrieved context
+    contains no relevant evidence for the question.
+- Clearly distinguish supported points from information that is not available.
+- When evidence is used, include at least one valid SOURCE N from the provided
+    context, using the exact SOURCE number corresponding to the evidence. Do not
+    write "Sources: None" when relevant evidence exists.
 - At the end, include:
 
 Sources:
