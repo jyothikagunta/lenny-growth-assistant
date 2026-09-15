@@ -31,6 +31,14 @@ def _timeout_seconds() -> float:
         return 180.0
 
 
+def _ollama_num_ctx() -> int:
+    value = os.getenv("OLLAMA_NUM_CTX", "4096")
+    try:
+        return max(int(value), 1)
+    except ValueError:
+        return 4096
+
+
 def get_llm_client() -> OpenAI:
     provider, _ = _provider_and_model()
 
@@ -79,6 +87,11 @@ def generate_answer(
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0.2,
+            **(
+                {"extra_body": {"options": {"num_ctx": _ollama_num_ctx()}}}
+                if provider == "ollama"
+                else {}
+            ),
         )
         answer = response.choices[0].message.content or ""
         if not answer:

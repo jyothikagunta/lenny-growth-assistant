@@ -12,6 +12,24 @@ from app.services.retrieval import search_transcripts
 
 
 class RetrievalIndexTest(unittest.TestCase):
+    def test_retrieval_removes_question_framing_terms(self):
+        db = MagicMock()
+        db.execute.return_value.mappings.return_value.all.return_value = []
+
+        search_transcripts(
+            db=db,
+            query="What product differentiation principles are discussed in the Ayo Omojola episode?",
+            limit=5,
+        )
+
+        self.assertEqual(
+            db.execute.call_args.args[1],
+            {
+                "query": "product differentiation principles ayo omojola",
+                "limit": 5,
+            },
+        )
+
     def test_fts_migration_defines_matching_gin_expression(self):
         migration = Path(__file__).parents[1] / "backend" / "alembic" / "versions" / "3f6e9c2a1b7d_add_transcript_chunk_content_fts_index.py"
         content = migration.read_text(encoding="utf-8")

@@ -35,6 +35,29 @@ RETRIEVED = [
 
 
 class CitationIntegrityTest(unittest.TestCase):
+    def test_grounded_answer_with_source_reference_maps_authoritative_source(self):
+        answer = """
+The transcript explains that being different is not enough, being better is
+not enough, and the product must be better in a way that matters to the end
+user.
+
+Sources:
+- SOURCE 1
+"""
+
+        sources = map_source_references(answer, RETRIEVED)
+
+        self.assertEqual(
+            sources,
+            [
+                {
+                    "episode_title": "Activation and retention",
+                    "guest_name": "Elena Verna",
+                    "source_url": "https://example.com/elena",
+                }
+            ],
+        )
+
     def test_references_map_only_to_authoritative_retrieved_sources(self):
         sources = map_source_references(
             "Kevin Yien explains this approach. SOURCE 2. SOURCE 1. SOURCE 5. SOURCE 1.",
@@ -59,6 +82,14 @@ class CitationIntegrityTest(unittest.TestCase):
         self.assertNotIn("Kevin Yien", str(sources))
         self.assertNotIn("transcript_id", sources[0])
         self.assertNotIn("chunk_id", sources[0])
+
+    def test_invalid_source_references_are_rejected(self):
+        sources = map_source_references(
+            "The answer is supported. Sources: SOURCE 0, SOURCE 3, SOURCE 99.",
+            RETRIEVED,
+        )
+
+        self.assertEqual(sources, [])
 
     def test_chat_response_sources_are_mapped_from_retrieval(self):
         session_query = MagicMock()

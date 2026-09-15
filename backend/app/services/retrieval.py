@@ -1,9 +1,40 @@
 import logging
+import re
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
+
+_QUESTION_FRAMING_WORDS = {
+    "about",
+    "are",
+    "be",
+    "being",
+    "discussed",
+    "does",
+    "did",
+    "do",
+    "episode",
+    "how",
+    "in",
+    "is",
+    "of",
+    "the",
+    "this",
+    "what",
+    "were",
+    "which",
+    "who",
+}
+
+
+def _normalise_search_query(query: str) -> str:
+    terms = re.findall(r"[\w']+", query.lower())
+    meaningful_terms = [
+        term for term in terms if term not in _QUESTION_FRAMING_WORDS
+    ]
+    return " ".join(meaningful_terms) or query
 
 
 class RetrievalServiceError(RuntimeError):
@@ -15,6 +46,7 @@ def search_transcripts(
     query: str,
     limit: int = 5,
 ):
+    search_query = _normalise_search_query(query)
     logger.info(
         "Transcript retrieval started",
         extra={
@@ -48,7 +80,7 @@ def search_transcripts(
     try:
         result = db.execute(
             sql,
-            {"query": query, "limit": limit},
+            {"query": search_query, "limit": limit},
         )
         rows = result.mappings().all()
     except Exception as error:

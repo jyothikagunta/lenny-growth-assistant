@@ -49,6 +49,9 @@ GROUNDING RULES:
 10. Reference sources using their SOURCE number, for example SOURCE 1.
 11. Conversation history is context for follow-up questions only. It is not
     evidence for factual claims about Lenny's Podcast.
+12. If you use any transcript evidence, cite at least one valid SOURCE N in
+    the Sources section. Never write "Sources: None" when the excerpts
+    support the answer.
 """
 
 CLAUDE_AUTH_ENV_VARS = ("ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN")
@@ -128,6 +131,8 @@ Requirements:
     available Lenny transcript material does not support a confident answer.
 - If the context only partially answers the question, clearly state what
   is supported and what is not.
+- If you use any retrieved transcript evidence, cite it with one or more
+    valid SOURCE N references. Do not write "Sources: None" in that case.
 - At the end, include:
 
 Sources:
