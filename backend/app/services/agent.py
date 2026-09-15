@@ -18,6 +18,7 @@ from app.services.llm import LLMConfigurationError, LLMServiceError
 from app.services.retrieval import RetrievalServiceError, search_transcripts
 from app.services.skills.ship_30_for_30 import (
     SHIP_30_FOR_30_TOOL_NAME,
+    SHIP_30_FOR_30_INSUFFICIENT_CONTEXT_MESSAGE,
     build_ship_30_for_30_instructions,
     build_ship_30_for_30_prompt,
     is_ship_30_for_30_request,
@@ -211,6 +212,11 @@ def _generate_local_answer(
         )
 
     if is_ship_30_for_30_request(query):
+        if not results:
+            return AgentResponse(
+                answer=SHIP_30_FOR_30_INSUFFICIENT_CONTEXT_MESSAGE,
+                results=[],
+            )
         answer = generate_answer(
             system_prompt=SYSTEM_PROMPT,
             user_prompt=build_ship_30_for_30_prompt(
@@ -341,6 +347,11 @@ Generate a {artifact_request.artifact_type} artifact titled
 \"{artifact_request.title}\". For HTML, return a complete self-contained
 document with CSS inside it and never perform backend actions, filesystem
 access, shell commands, or API calls. For Markdown, return valid Markdown.
+Use only retrieved transcript excerpts for factual claims about Lenny's
+Podcast. Never invent percentages, statistics, business outcomes, quotes,
+guest names, episode titles, or case-study results. If an example is only
+illustrative, label it as hypothetical. If evidence is qualitative only,
+keep it qualitative. Guest identity must match retrieved SOURCE metadata.
 Return only the artifact, then append ARTIFACT_SOURCES: SOURCE X, SOURCE Y
 outside the artifact. Use only directly relevant source numbers.
 """
@@ -387,6 +398,12 @@ answer. If the tool does not provide enough information, say so explicitly.
     if not answer:
         raise AgentConfigurationError(
             "Claude agent returned an empty answer."
+        )
+
+    if skill_enabled and not retrieved_results:
+        return AgentResponse(
+            answer=SHIP_30_FOR_30_INSUFFICIENT_CONTEXT_MESSAGE,
+            results=[],
         )
 
     artifact = None

@@ -28,13 +28,158 @@ _QUESTION_FRAMING_WORDS = {
     "who",
 }
 
+# Lightweight semantic expansion for common product/growth concepts.
+# Original query terms are always preserved.
+_SEARCH_EXPANSIONS = {
+    "growth": (
+        "growth",
+        "retention",
+        "activation",
+        "acquisition",
+        "engagement",
+        "adoption",
+        "scaling",
+    ),
+    "product": (
+        "product",
+        "user",
+        "customer",
+        "experience",
+        "prioritization",
+        "roadmap",
+    ),
+    "details": (
+        "details",
+        "small",
+        "tiny",
+        "specific",
+        "concrete",
+        "friction",
+        "improvements",
+        "iteration",
+    ),
+    "small": (
+        "small",
+        "tiny",
+        "specific",
+        "concrete",
+        "incremental",
+        "details",
+    ),
+    "improvement": (
+        "improvement",
+        "improvements",
+        "iteration",
+        "experiment",
+        "testing",
+        "optimization",
+    ),
+    "improvements": (
+        "improvements",
+        "improvement",
+        "iteration",
+        "experiment",
+        "testing",
+        "optimization",
+    ),
+    "user": (
+        "user",
+        "customer",
+        "customer experience",
+        "user experience",
+    ),
+    "customers": (
+        "customers",
+        "customer",
+        "users",
+        "user",
+        "experience",
+    ),
+    "experience": (
+        "experience",
+        "user experience",
+        "customer experience",
+        "usability",
+        "friction",
+    ),
+    "retention": (
+        "retention",
+        "churn",
+        "engagement",
+        "stickiness",
+        "loyalty",
+    ),
+    "activation": (
+        "activation",
+        "onboarding",
+        "adoption",
+        "first value",
+    ),
+    "prioritization": (
+        "prioritization",
+        "prioritize",
+        "tradeoffs",
+        "roadmap",
+        "focus",
+    ),
+    "leadership": (
+        "leadership",
+        "management",
+        "teams",
+        "decision making",
+    ),
+}
+
 
 def _normalise_search_query(query: str) -> str:
     terms = re.findall(r"[\w']+", query.lower())
+
     meaningful_terms = [
-        term for term in terms if term not in _QUESTION_FRAMING_WORDS
+        term
+        for term in terms
+        if term not in _QUESTION_FRAMING_WORDS
     ]
-    return " ".join(meaningful_terms) or query
+
+    if not meaningful_terms:
+        return query
+
+    # Only expand broad conceptual queries.
+    # This preserves the existing exact-search behavior for normal
+    # lookups and keeps the retrieval API contract stable.
+    expansion_triggers = {
+        "details",
+        "detail",
+        "small",
+        "tiny",
+        "improvement",
+        "improvements",
+        "growth",
+        "experience",
+        "retention",
+        "activation",
+        "engagement",
+        "adoption",
+        "friction",
+    }
+
+    if not expansion_triggers.intersection(meaningful_terms):
+        return " ".join(dict.fromkeys(meaningful_terms))
+
+    # Keep short and precise searches unchanged.
+    # For example: "activation" must remain "activation".
+    if len(meaningful_terms) <= 2:
+        return " ".join(dict.fromkeys(meaningful_terms))
+
+    expanded_terms = list(meaningful_terms)
+
+    for term in meaningful_terms:
+        expansion = _SEARCH_EXPANSIONS.get(term)
+
+        if expansion:
+            expanded_terms.extend(expansion)
+
+    # Remove duplicates while preserving order.
+    return " ".join(dict.fromkeys(expanded_terms))
 
 
 class RetrievalServiceError(RuntimeError):
@@ -47,6 +192,24 @@ def search_transcripts(
     limit: int = 5,
 ):
     search_query = _normalise_search_query(query)
+
+    # Build a safe fallback using only the meaningful words from
+    # the user's original query. This is important because PostgreSQL
+    # websearch_to_tsquery treats space-separated terms restrictively.
+    original_terms = re.findall(r"[\w']+", query.lower())
+
+    meaningful_terms = [
+        term
+        for term in original_terms
+        if term not in _QUESTION_FRAMING_WORDS
+    ]
+
+    fallback_query = (
+        " ".join(dict.fromkeys(meaningful_terms))
+        if meaningful_terms
+        else query
+    )
+
     logger.info(
         "Transcript retrieval started",
         extra={
@@ -54,6 +217,7 @@ def search_transcripts(
             "operation": "search_transcripts",
         },
     )
+
     sql = text(
         """
         SELECT
@@ -78,11 +242,39 @@ def search_transcripts(
     )
 
     try:
+        # First attempt: normalized/expanded query.
         result = db.execute(
             sql,
-            {"query": search_query, "limit": limit},
+            {
+                "query": search_query,
+                "limit": limit,
+            },
         )
+
         rows = result.mappings().all()
+
+        # If semantic expansion made the query too restrictive,
+        # retry with the original meaningful terms.
+        if not rows and search_query != fallback_query:
+            logger.info(
+                "Expanded retrieval returned no matches; "
+                "retrying with original query terms",
+                extra={
+                    "event": "retrieval_fallback",
+                    "operation": "search_transcripts",
+                },
+            )
+
+            result = db.execute(
+                sql,
+                {
+                    "query": fallback_query,
+                    "limit": limit,
+                },
+            )
+
+            rows = result.mappings().all()
+
     except Exception as error:
         logger.error(
             "Transcript retrieval failed",
@@ -92,7 +284,10 @@ def search_transcripts(
                 "error_type": type(error).__name__,
             },
         )
-        raise RetrievalServiceError("Transcript retrieval is unavailable.") from error
+
+        raise RetrievalServiceError(
+            "Transcript retrieval is unavailable."
+        ) from error
 
     if not rows:
         logger.info(
@@ -102,4 +297,5 @@ def search_transcripts(
                 "operation": "search_transcripts",
             },
         )
+
     return rows

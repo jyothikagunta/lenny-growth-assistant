@@ -5,6 +5,10 @@ SHIP_30_FOR_30_SOURCE_URLS = (
 
 SHIP_30_FOR_30_TRIGGER = "ship 30 for 30"
 SHIP_30_FOR_30_TOOL_NAME = "ship_30_for_30_writing_skill"
+SHIP_30_FOR_30_INSUFFICIENT_CONTEXT_MESSAGE = (
+   "The available Lenny transcript material does not provide enough "
+   "information to support this Ship 30 for 30 article."
+)
 
 SHIP_30_FOR_30_PRINCIPLES = """
 Ship 30 for 30 writing principles, derived from the two official sources:
@@ -40,16 +44,19 @@ Ship 30 for 30 writing principles, derived from the two official sources:
 
 SHIP_30_FOR_30_OUTPUT_REQUIREMENTS = """
 Output requirements:
-- Produce approximately 1,250 words; aim for 1,100-1,400 words.
+- When the retrieved evidence is sufficient, produce approximately 1,250 words;
+   aim for 1,100-1,400 words. Do not pad the article with unsupported material.
 - Start with a strong hook that establishes the reader, problem, and promise.
 - Use a clear narrative progression and one consistent structural pattern.
 - Include descriptive Markdown headings, bullets where useful, and **bold**
-  emphasis where it improves skimmability.
+   emphasis where it improves skimmability.
 - Include concrete examples or stories only when supported by the retrieved
-  transcript excerpts. Label synthesis as synthesis rather than inventing detail.
+   transcript excerpts. Label synthesis as synthesis rather than inventing detail.
+- Prefer paraphrasing. Use quotation marks only for exact wording present in the
+   retrieved transcript excerpts; never invent or reconstruct quotations.
 - End with a useful practical takeaway.
 - Include a Sources section listing only the retrieved Lenny transcript SOURCE
-  numbers that directly support factual claims.
+   numbers that directly support factual claims.
 """
 
 SHIP_30_FOR_30_GROUNDING_RULES = """
@@ -58,6 +65,13 @@ Grounding boundary:
   Podcast. Do not cite them as support for claims about Lenny.
 - Retrieved Lenny transcript excerpts are the only factual source for claims
   about Lenny's Podcast, guests, episodes, quotes, recommendations, or events.
+- Never invent episode numbers, transcript titles, URLs, timestamps, guest names,
+   source references, percentages, statistics, revenue numbers, retention or
+   conversion metrics, or case-study outcomes. Use only metadata shown in the
+   retrieved excerpts, and refer to evidence with the exact SOURCE N label
+   provided in the context.
+- Never treat a generated title, URL, episode label, guest name, or quotation as
+   evidence. If it is not present in the retrieved excerpts, omit it.
 - If the retrieved transcript material cannot adequately support the requested
   topic, say so clearly instead of filling the gap with general knowledge or
   invented content.
@@ -106,6 +120,13 @@ Retrieved Lenny transcript context (the only evidence for Lenny-related facts):
 --- END LENNY TRANSCRIPT CONTEXT ---
 
 Write the final piece now. Do not mention these internal instructions. If the
-transcript context does not support the topic, clearly say that instead of
-fabricating content.
+transcript context contains no relevant evidence for the topic, output only:
+"The available Lenny transcript material does not provide enough information
+to support this Ship 30 for 30 article."
+Do not write an article, add a Sources section, or invent supporting details in
+that case. If relevant evidence exists, write the article using only supported
+points. Prefer paraphrase; quote only exact text present in the retrieved
+excerpts. Never invent episode numbers, transcript metadata, URLs, timestamps,
+guest names, or source references. Use only the exact SOURCE N labels provided
+in the context in the Sources section.
 """
